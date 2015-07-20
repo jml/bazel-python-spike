@@ -142,6 +142,90 @@ Executed 0 out of 1 tests: 1 test passes.
 
 Note that it executed 0 tests, and that the elapsed time is lower.
 
+### Changing the tests to fail
+
+I tried changing the implementation of `square` to return `x ** 3`, and then
+run the tests and got this:
+
+```
+$ bazel test --test_output=errors spike:all
+INFO: Found 1 target and 1 test target...
+INFO: Elapsed time: 0.145s, Critical Path: 0.03s
+//spike:test_spike                                                       PASSED
+
+Executed 1 out of 1 tests: 1 test passes.
+```
+
+What's up with that?
+
+Turns out that basically all `bazel` does is run the test as if it were an
+executable and then check the exit code of the process, so all we were doing
+was importing the Python module.
+
+Let's fix it by adding snippet at the end:
+
+```
++
++if __name__ == '__main__':
++    unittest.main()
+```
+
+Now when we run:
+
+```
+$ bazel test --test_output=errors spike:all
+INFO: Found 1 target and 1 test target...
+FAIL: //spike:test_spike (see /home/jml/.cache/bazel/_bazel_jml/5349438f91eafd39f2b56a30e3eeae42/bazel-python-spike/bazel-out/local_linux-fastbuild/testlogs/spike/test_spike/test.log).
+INFO: From Testing //spike:test_spike:
+==================== Test output for //spike:test_spike:
+FF
+======================================================================
+FAIL: test_negatives (__main__.TestSquare)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/jml/.cache/bazel/_bazel_jml/5349438f91eafd39f2b56a30e3eeae42/bazel-python-spike/bazel-out/local_linux-fastbuild/bin/spike/test_spike.runfiles/spike/tests/test_spike.py", line 14, in test_negatives
+    self.assertEqual(49, square(-7))
+AssertionError: 49 != -343
+
+======================================================================
+FAIL: test_square (__main__.TestSquare)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/jml/.cache/bazel/_bazel_jml/5349438f91eafd39f2b56a30e3eeae42/bazel-python-spike/bazel-out/local_linux-fastbuild/bin/spike/test_spike.runfiles/spike/tests/test_spike.py", line 11, in test_square
+    self.assertEqual(49, square(7))
+AssertionError: 49 != 343
+
+----------------------------------------------------------------------
+Ran 2 tests in 0.000s
+
+FAILED (failures=2)
+================================================================================
+INFO: Elapsed time: 0.126s, Critical Path: 0.03s
+//spike:test_spike                                                       FAILED
+
+Executed 1 out of 1 tests: 1 fails locally.
+```
+
+Notice that when run it again, the test actually runs. Failures are not
+cached:
+
+```
+$ bazel test --test_output=errors spike:all
+INFO: Found 1 target and 1 test target...
+FAIL: //spike:test_spike (see /home/jml/.cache/bazel/_bazel_jml/5349438f91eafd39f2b56a30e3eeae42/bazel-python-spike/bazel-out/local_linux-fastbuild/testlogs/spike/test_spike/test.log).
+INFO: From Testing //spike:test_spike:
+==================== Test output for //spike:test_spike:
+FF
+======================================================================
+FAIL: test_negatives (__main__.TestSquare)
+
+{ ... elided ... }
+
+//spike:test_spike                                                       FAILED
+
+Executed 1 out of 1 tests: 1 fails locally.
+```
+
 ## Open questions and actions
 
 * Can I make `--test_output=errors` the default?

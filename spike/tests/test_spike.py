@@ -1,10 +1,10 @@
 
-from unittest import TestCase
+import unittest
 
 from spike import square
 
 
-class TestSquare(TestCase):
+class TestSquare(unittest.TestCase):
 
     def test_square(self):
         self.assertEqual(0, square(0))
@@ -13,3 +13,6 @@ class TestSquare(TestCase):
     def test_negatives(self):
         self.assertEqual(49, square(-7))
 
+
+if __name__ == '__main__':
+    unittest.main()
