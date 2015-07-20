@@ -59,8 +59,92 @@ drwxrwxr-x  3 jml jml 4096 Jul 20 14:21 spike
 -rw-rw-r--  1 jml jml    0 Jul 20 14:27 WORKSPACE
 ```
 
+## BUILD files
+
+I've added one `BUILD` file under the `spike` package, which is directly
+underneath the directory with `WORKSPACE`. Using Bazel's convention, this is
+in `//spike/BUILD`.
+
+### Running the tests
+
+```
+$ bazel test --test_output=errors spike:test_spike
+INFO: Found 1 test target...
+FAIL: //spike:test_spike (see /home/jml/.cache/bazel/_bazel_jml/5349438f91eafd39f2b56a30e3eeae42/bazel-python-spike/bazel-out/local_linux-fastbuild/testlogs/spike/test_spike/test.log).
+INFO: From Testing //spike:test_spike:
+==================== Test output for //spike:test_spike:
+Traceback (most recent call last):
+  File "/home/jml/.cache/bazel/_bazel_jml/5349438f91eafd39f2b56a30e3eeae42/bazel-python-spike/bazel-out/local_linux-fastbuild/bin/spike/test_spike.runfiles/spike/tests/test_spike.py", line 4, in <module>
+    from spike import square
+ImportError: cannot import name square
+================================================================================
+Target //spike:test_spike up-to-date:
+  bazel-bin/spike/test_spike
+INFO: Elapsed time: 0.182s, Critical Path: 0.03s
+//spike:test_spike                                                       FAILED
+
+Executed 1 out of 1 tests: 1 fails locally.
+```
+
+The `--test_output=errors` option tells `bazel` to include errors in the test
+output. Without it, we wouldn't get the stack trace.
+
+The problem here is that `test_spike` doesn't actually have access to
+`spike/__init__.py`, because it wasn't declared as a dependency. Let's fix
+that:
+
+```
++    deps=[
++        ':spike',
++    ],
+```
+
+Now run again:
+
+```
+$ bazel test --test_output=errors spike:test_spike
+INFO: Found 1 test target...
+Target //spike:test_spike up-to-date:
+  bazel-bin/spike/test_spike
+INFO: Elapsed time: 0.300s, Critical Path: 0.07s
+//spike:test_spike                                                       PASSED
+
+Executed 1 out of 1 tests: 1 test passes.
+There were tests whose specified size is too big. Use the --test_verbose_timeout_warnings command line option to see which ones these are.
+```
+
+It passed, but there's a warning about test size. Let's fix that by correctly
+pointing out that our test is "small".
+
+```
+$ bazel test --test_output=errors spike:test_spike
+INFO: Found 1 test target...
+Target //spike:test_spike up-to-date:
+  bazel-bin/spike/test_spike
+INFO: Elapsed time: 0.273s, Critical Path: 0.05s
+//spike:test_spike                                                       PASSED
+
+Executed 1 out of 1 tests: 1 test passes.
+```
+
+`bazel` caches results. Let's run again:
+
+```
+$ bazel test --test_output=errors spike:test_spike
+INFO: Found 1 test target...
+Target //spike:test_spike up-to-date:
+  bazel-bin/spike/test_spike
+INFO: Elapsed time: 0.119s, Critical Path: 0.00s
+//spike:test_spike                                          (1/0 cached) PASSED
+
+Executed 0 out of 1 tests: 1 test passes.
+```
+
+Note that it executed 0 tests, and that the elapsed time is lower.
 
 ## Open questions and actions
 
-* **XXX**: Can I put the test build targets in the main module?
-* **XXX**: Can I make `--test_output=errors` the default?
+* Can I make `--test_output=errors` the default?
+* What happens if I put spike's contents in a module, rather than
+  `__init__.py`?
+* Can I put the test rules in the `tests` directory?
