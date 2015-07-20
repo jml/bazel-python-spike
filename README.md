@@ -61,7 +61,7 @@ drwxrwxr-x  3 jml jml 4096 Jul 20 14:21 spike
 
 ## BUILD files
 
-I've added one `BUILD` file under the `spike` package, which is directly
+I've added one [BUILD](spike/BUILD) file under the `spike` package, which is directly
 underneath the directory with `WORKSPACE`. Using Bazel's convention, this is
 in `//spike/BUILD`.
 
